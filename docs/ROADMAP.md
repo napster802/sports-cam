@@ -1,0 +1,34 @@
+# Phase 2 Roadmap
+
+Phase 1 (this repository, as of now) delivers a compiling core: auth, match/team management, the scoreboard engine, camera + RTMP streaming, and local recording, wired together end-to-end through navigation. It is one slice of the original, much larger SportCaster Pro spec. This document tracks what's deliberately deferred.
+
+## Immediate priorities (do these first)
+
+1. **Verify the RootEncoder integration compiles and runs.** `feature/streaming/domain/StreamingEngine.kt` was written without access to a working Android SDK/Gradle build — see `docs/ARCHITECTURE.md`. This blocks everything else streaming-related.
+2. **Burn the scoreboard into the actual outgoing stream/recording, not just the local preview.** Today `ScoreboardOverlay` is a Compose layer on top of RootEncoder's `OpenGlView`; RootEncoder's encoder never sees it. Investigate RootEncoder's overlay/filter APIs (it supports adding image/text/GL overlays directly into the encode pipeline) or compositing a rendered scoreboard bitmap into the same surface.
+3. **Add a release signing config** and produce a real signed build (see `docs/DEPLOYMENT.md`).
+4. **Stand up CI** (GitHub Actions or similar) running `./gradlew testFreeDebugUnitTest detekt lint` on every push, since this codebase has not yet been verified by any compiler.
+
+## Feature gaps vs. the original spec
+
+- **More sports**: badminton/table tennis/cricket/rugby currently fall back to `GenericPointRules`, which is functionally fine but doesn't model sport-specific quirks (cricket overs/wickets, rugby tries vs. conversions, badminton's 21-point rally scoring with 2-point-lead caps). Add dedicated `SportRules` implementations as needed.
+- **Multi-camera / camera switching UI**: `StreamingEngine.switchCamera()` exists but `LiveStreamScreen` has no UI control wired to it yet.
+- **Stream health/diagnostics UI**: `StreamStats` already tracks bitrate and connection status; a dedicated diagnostics panel (dropped frames, latency, reconnect history) would help operators trust the stream.
+- **WebRTC**: mentioned in the original spec for low-latency preview/monitoring; not started. Likely a second, parallel `StreamingEngine`-style component rather than a replacement for RTMP.
+- **Cloud backup / cross-device sync of matches and team rosters**: Firestore dependency is present but no repository uses it yet — Room is currently the only persistence layer. Decide whether Firestore becomes the source of truth (with Room as an offline cache) or stays Realtime-Database-only.
+- **VOD / cloud DVR**: recordings currently stay in local app-specific storage (`getExternalFilesDir(DIRECTORY_MOVIES)`); no upload-to-cloud-storage or playback-in-app flow exists. `media3-exoplayer`/`media3-ui` are already dependencies, presumably for this.
+- **Social sharing / stream destinations management**: no UI for saving multiple named RTMP destinations (currently one ad-hoc `StreamSettings` entered per session in `LiveStreamScreen`'s settings dialog) or for posting clips/scores to social platforms.
+- **Monetization / subscriptions**: the `free`/`pro` flavor split exists at the build level (`BuildConfig.IS_PRO`), but there's no Play Billing integration gating any actual feature — right now it's purely cosmetic in `SettingsScreen`.
+- **Push notification content**: `SportCasterMessagingService` is registered but only receives messages; no notification-triggered UX (e.g. "match starting soon", "you're live") has been built.
+- **Player/roster management UI**: `PlayerEntity`/`PlayerDao` exist in the Room schema but no domain model, repository, or screen consumes them yet — useful for box-score-style stats per player.
+- **Stats/replay UI from `ScoreEvent` history**: events are persisted (`ScoreEventRepository`) but nothing reads them back yet — a post-match timeline/box-score screen is a natural next feature.
+- **Accessibility and localization pass**: strings are centralized in `strings.xml` (good foundation) but no additional locales or accessibility audit (TalkBack labels beyond the basics, contrast checks) has been done.
+- **Compose UI tests and ViewModel unit tests**: see `docs/TESTING.md` for the specific gaps.
+
+## Suggested sequencing
+
+1. Get a real build green (Immediate priorities #1, #3, #4).
+2. Fix the overlay-not-in-stream gap (#2) — this is core to the product's value proposition.
+3. Round out sport rules and add the diagnostics/camera-switch UI (low risk, high polish).
+4. Pick one cloud-sync story (Firestore vs. Realtime DB) deliberately rather than depending on both ambiguously.
+5. Layer in monetization, social, and stats features once the broadcast path itself is trusted in production.

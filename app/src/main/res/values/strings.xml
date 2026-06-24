@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SportCaster Pro</string>
+    <string name="tagline">Broadcast every game like a pro</string>
+
+    <string name="action_continue">Continue</string>
+    <string name="action_sign_in">Sign In</string>
+    <string name="action_sign_up">Create Account</string>
+    <string name="action_sign_in_google">Continue with Google</string>
+    <string name="action_sign_out">Sign Out</string>
+    <string name="label_email">Email</string>
+    <string name="label_password">Password</string>
+
+    <string name="dashboard_title">Dashboard</string>
+    <string name="dashboard_upcoming_matches">Upcoming Matches</string>
+    <string name="dashboard_no_matches">No matches yet. Create one to get started.</string>
+    <string name="action_new_match">New Match</string>
+
+    <string name="create_match_title">Create Match</string>
+    <string name="label_sport">Sport</string>
+    <string name="label_home_team">Home Team</string>
+    <string name="label_away_team">Away Team</string>
+    <string name="label_location">Location</string>
+    <string name="action_save_match">Save Match</string>
+
+    <string name="live_stream_title">Live Stream</string>
+    <string name="action_start_stream">Go Live</string>
+    <string name="action_stop_stream">End Stream</string>
+    <string name="action_record">Record</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_resume">Resume</string>
+    <string name="label_rtmp_url">RTMP URL</string>
+    <string name="label_stream_key">Stream Key</string>
+    <string name="stream_settings_title">Stream Settings</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="label_resolution">Resolution</string>
+    <string name="label_frame_rate">Frame Rate</string>
+    <string name="label_bitrate">Bitrate</string>
+
+    <string name="scoreboard_editor_title">Scoreboard Editor</string>
+    <string name="action_add_point">+1</string>
+    <string name="action_remove_point">-1</string>
+    <string name="action_reset_score">Reset</string>
+    <string name="action_swap_teams">Swap Teams</string>
+    <string name="action_start_broadcast">Start Broadcast</string>
+    <string name="label_team_color">Team Color</string>
+    <string name="action_next_period">Next Period</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_dark_mode">Dark Mode</string>
+    <string name="settings_subscription">Subscription</string>
+
+    <string name="permission_camera_required">Camera permission is required to stream and record.</string>
+    <string name="permission_microphone_required">Microphone permission is required to stream and record.</string>
+</resources>

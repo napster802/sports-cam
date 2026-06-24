@@ -1,0 +1,74 @@
+# Architecture
+
+## Layering
+
+The app follows Clean Architecture split by feature, with a shared `core/` module for cross-cutting infrastructure:
+
+```
+core/
+├── data/local/          Room database, DAOs, entities (+ entity <-> domain mappers)
+├── di/                  App-wide Hilt modules (DatabaseModule, FirebaseModule, DispatcherModule)
+├── domain/model/        Plain Kotlin domain models shared across features (Match, Team, Sport, ScoreEvent, ...)
+├── domain/util/         DispatcherProvider, Resource<T>
+├── messaging/           FCM service
+├── navigation/          Screen routes + NavHost graph
+└── ui/                  Theme, shared composables (SportCasterTopBar, FullScreenLoading, ...)
+
+feature/<name>/
+├── domain/              Repository interfaces, use cases, pure business logic
+├── data/                Repository implementations (Room/Firebase-backed)
+├── presentation/        ViewModels + Compose screens
+└── di/                  Hilt @Binds modules wiring domain interfaces to data impls
+```
+
+Dependency direction is always `presentation -> domain <- data`; `presentation` and `data` never depend on each other directly, and `domain` has no Android framework dependencies (the one exception is `StreamingEngine`, discussed below, which is unavoidably tied to the Android camera/encoder stack).
+
+## Key patterns
+
+### MVVM
+Every screen has a `@HiltViewModel` exposing a single `StateFlow<XyzUiState>` built with `combine(...).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), XyzUiState())`. Screens are stateless Composables that read `uiState` and call ViewModel functions; no business logic lives in Composables.
+
+### Repository pattern
+Each feature exposes a domain-layer interface (e.g. `MatchRepository`, `ScoreEventRepository`) and a single Room-backed implementation, bound via a Hilt `@Binds` module (e.g. `MatchModule`, `ScoreboardModule`). This keeps Room/Firebase types out of `domain` and `presentation`.
+
+### Strategy pattern for scoring
+Different sports score fundamentally differently (running point totals vs. volleyball's set-based win-by-2 vs. tennis's game/set/match cascade). Rather than one branching scoring class, `feature/scoreboard/domain/SportRules.kt` defines the contract:
+
+```kotlin
+interface SportRules {
+    fun initialState(sport: Sport, homeTeam: Team, awayTeam: Team): ScoreboardState
+    fun addPoint(state: ScoreboardState, team: ScoringTeam, value: Int = 1): ScoreboardState
+    fun removePoint(state: ScoreboardState, team: ScoringTeam, value: Int = 1): ScoreboardState
+    fun nextPeriod(state: ScoreboardState): ScoreboardState
+}
+```
+
+`SportRulesFactory` resolves the right implementation per `Sport`:
+
+- `GenericPointRules` — running point/run total with a manually-advanced period. Used by basketball, football, futsal, badminton, table tennis, baseball, cricket, rugby, and hockey.
+- `VolleyballRules` — best-of-5 sets, 25 (15 in set 5) points to win a set, win-by-2, auto-advances sets and detects match completion at 3 sets won.
+- `TennisRules` — best-of-3 sets with game → set → match cascading completion logic.
+
+`ScoreboardController` (one instance per live match, created via Hilt's `@Inject constructor` and *not* a singleton) owns the live `MutableStateFlow<ScoreboardState>`, delegates every mutation to the resolved `SportRules`, and additionally owns the match timer (`startTimer`/`pauseTimer`, ticking once per second via a cancellable `Job`).
+
+Each point change is also written to Room as an immutable `ScoreEvent` (via `ScoreEventRepository`) purely for history/stats replay — this is a deliberate split from the in-memory `ScoreboardState`, which only reflects the *current* score, not its history.
+
+### Dependency injection
+Hilt modules are scoped per feature (`AuthModule`, `MatchModule`, `ScoreboardModule`) plus app-wide modules in `core/di`. `DispatcherProvider` is injected everywhere coroutines are launched from a ViewModel, rather than hardcoding `Dispatchers.IO`, to keep that code testable.
+
+## Streaming pipeline
+
+`feature/streaming/domain/StreamingEngine.kt` wraps RootEncoder's `RtmpCamera2`, which owns the camera, hardware encoder, and RTMP socket together via a `OpenGlView` surface (hosted in Compose through `AndroidView` in `LiveStreamScreen.kt`). `StreamingForegroundService` is a plain `Service` (not bound to the camera) that exists purely to keep the process alive and visible to the user via a notification while streaming/recording — `LiveStreamViewModel.startBroadcast()`/`endBroadcast()` start/stop it alongside the actual `StreamingEngine` calls.
+
+**Design decision, not yet validated by a real build**: RootEncoder was substituted for the now-retired FFmpegKit (approved substitution). Because `RtmpCamera2` already owns the full camera→encoder→network pipeline, this project lets it own the camera directly instead of bridging a separate CameraX pipeline into it — CameraX→RootEncoder frame bridging is not a well-documented, supported configuration. The CameraX dependencies declared in `app/build.gradle.kts` are consequently unused by the streaming path; they were left in place from earlier scaffolding in case a future phase needs CameraX-specific capture features.
+
+**This file has never been compiled.** The sandbox this project was built in has no Android SDK and no network path to Google's Maven repository, so `RtmpCamera2`'s constructor signature, `prepareVideo`/`prepareAudio` parameter names and order, the `ConnectChecker` callback signatures, and the existence of `pauseRecord`/`resumeRecord` are all written from best recollection of RootEncoder 2.5.3's public API. Treat this as the single highest-risk file in the codebase — open it in Android Studio first and resolve any mismatches against the library's own samples/Javadoc before relying on live streaming or recording.
+
+## Data flow example: scoring a point during a broadcast
+
+1. User taps "+1" for the home team in `LiveStreamControls` (`LiveStreamScreen.kt`).
+2. `LiveStreamViewModel.addPoint(ScoringTeam.HOME)` is called.
+3. It calls `scoreboardController.addPoint(team, value)`, which delegates to the resolved `SportRules.addPoint`, updating the in-memory `MutableStateFlow<ScoreboardState>`.
+4. It also persists a `ScoreEvent` row via `ScoreEventRepository.recordEvent` (Room) for history/stats.
+5. `LiveStreamViewModel.uiState` (a `combine` of the controller's state flow and others) emits the new state.
+6. `ScoreboardOverlay` recomposes with the new score, rendered on top of the RootEncoder camera preview — the same view RootEncoder is currently encoding and pushing to the RTMP endpoint, so the overlay is **not** baked into the outgoing stream by this Compose layer. (RootEncoder draws the RTMP frame directly from the camera/OpenGL surface; burning the Compose overlay into the actual outgoing stream — rather than just the on-screen preview — requires drawing the scoreboard into the same `OpenGlView`/encoder surface RootEncoder reads from, which is **not yet implemented** and should be one of the first things addressed in Phase 2.)
