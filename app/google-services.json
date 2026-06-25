@@ -1,32 +1,13 @@
 {
   "project_info": {
-    "project_number": "000000000000",
-    "project_id": "sportcaster-pro-placeholder",
-    "storage_bucket": "sportcaster-pro-placeholder.appspot.com"
+    "project_number": "996487955027",
+    "project_id": "sportcaster-d95a1",
+    "storage_bucket": "sportcaster-d95a1.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
-        "android_client_info": {
-          "package_name": "com.sportcasterpro.app"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "REPLACE_WITH_REAL_API_KEY"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:000000000000:android:0000000000000001",
+        "mobilesdk_app_id": "1:996487955027:android:2520909a45c42ccfde3ca6",
         "android_client_info": {
           "package_name": "com.sportcasterpro.app.debug"
         }
@@ -34,45 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "REPLACE_WITH_REAL_API_KEY"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:000000000000:android:0000000000000002",
-        "android_client_info": {
-          "package_name": "com.sportcasterpro.app.pro"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "REPLACE_WITH_REAL_API_KEY"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:000000000000:android:0000000000000003",
-        "android_client_info": {
-          "package_name": "com.sportcasterpro.app.pro.debug"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "REPLACE_WITH_REAL_API_KEY"
+          "current_key": "AIzaSyC1QPKxM8mZaaHzyz74sFiAAqIPt8gmA58"
         }
       ],
       "services": {
