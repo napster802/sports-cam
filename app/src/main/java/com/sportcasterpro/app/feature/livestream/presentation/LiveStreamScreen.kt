@@ -48,6 +48,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -64,6 +65,11 @@ import com.sportcasterpro.app.feature.streaming.domain.ConnectionStatus
 import com.sportcasterpro.app.feature.streaming.domain.StreamSettings
 
 private val STREAMING_PERMISSIONS = arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
+
+// Controls in this screen sit directly on top of the live camera feed rather than a themed
+// surface, so they need a color that stays legible regardless of light/dark theme instead of
+// theme defaults like onSurface, which are tuned for a white or navy backdrop.
+private val OverlayContentColor = Color.White
 
 @Composable
 fun LiveStreamScreen(
@@ -120,12 +126,12 @@ fun LiveStreamScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.surface)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = OverlayContentColor)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         StreamStatusBadge(status = uiState.streamStats.connectionStatus)
                         IconButton(onClick = { isSettingsDialogOpen = true }) {
-                            Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.stream_settings_title), tint = MaterialTheme.colorScheme.surface)
+                            Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.stream_settings_title), tint = OverlayContentColor)
                         }
                     }
                 }
@@ -358,20 +364,34 @@ private fun LiveStreamControls(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            OutlinedButton(onClick = viewModel::nextPeriod) { Text(stringResource(R.string.action_next_period)) }
-            OutlinedButton(onClick = viewModel::swapTeams) { Text(stringResource(R.string.action_swap_teams)) }
-            OutlinedButton(onClick = viewModel::toggleRecording) {
-                Text(if (isRecording) stringResource(R.string.action_pause) else stringResource(R.string.action_record))
+            OutlinedButton(
+                onClick = viewModel::nextPeriod,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = OverlayContentColor),
+            ) { Text(stringResource(R.string.action_next_period)) }
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                IconButton(onClick = { if (isTimerRunning) viewModel.pauseTimer() else viewModel.startTimer() }) {
+                    Icon(
+                        imageVector = if (isTimerRunning) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                        contentDescription = if (isTimerRunning) {
+                            stringResource(R.string.action_pause_timer)
+                        } else {
+                            stringResource(R.string.action_play_timer)
+                        },
+                        tint = OverlayContentColor,
+                    )
+                }
+                OutlinedButton(
+                    onClick = viewModel::swapTeams,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = OverlayContentColor),
+                ) { Text(stringResource(R.string.action_swap_teams)) }
             }
-            IconButton(onClick = { if (isTimerRunning) viewModel.pauseTimer() else viewModel.startTimer() }) {
-                Icon(
-                    imageVector = if (isTimerRunning) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                    contentDescription = if (isTimerRunning) {
-                        stringResource(R.string.action_pause_timer)
-                    } else {
-                        stringResource(R.string.action_play_timer)
-                    },
-                )
+
+            OutlinedButton(
+                onClick = viewModel::toggleRecording,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = OverlayContentColor),
+            ) {
+                Text(if (isRecording) stringResource(R.string.action_pause) else stringResource(R.string.action_record))
             }
         }
         Button(

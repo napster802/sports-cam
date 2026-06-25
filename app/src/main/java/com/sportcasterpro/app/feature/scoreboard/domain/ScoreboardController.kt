@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 private const val TIMER_TICK_MILLIS = 1_000L
+private const val DEFAULT_TIMER_MILLIS = 10 * 60_000L
 
 /**
  * Holds the live, in-memory scoring state for a single broadcast and delegates every transition
@@ -90,7 +91,12 @@ class ScoreboardController @Inject constructor(
 
     fun startTimer(scope: CoroutineScope) {
         if (timerJob?.isActive == true) return
-        _state.update { it.copy(isTimerRunning = true) }
+        _state.update {
+            it.copy(
+                timerMillisRemaining = if (it.timerMillisRemaining > 0) it.timerMillisRemaining else DEFAULT_TIMER_MILLIS,
+                isTimerRunning = true,
+            )
+        }
         timerJob = scope.launch {
             while (_state.value.isTimerRunning && _state.value.timerMillisRemaining > 0) {
                 delay(TIMER_TICK_MILLIS)
