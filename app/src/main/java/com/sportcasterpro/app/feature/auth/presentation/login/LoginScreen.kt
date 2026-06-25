@@ -19,13 +19,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.sportcasterpro.app.R
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
@@ -33,6 +41,8 @@ fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(uiState.isAuthenticated) {
         if (uiState.isAuthenticated) onLoginSuccess()
@@ -105,7 +115,24 @@ fun LoginScreen(
             }
 
             OutlinedButton(
-                onClick = { /* Phase 2: wire Credential Manager / GoogleSignInClient with the real OAuth web client id from google-services.json */ },
+                onClick = {
+                    coroutineScope.launch {
+                        val googleIdOption = GetGoogleIdOption.Builder()
+                            .setFilterByAuthorizedAccounts(false)
+                            .setServerClientId(context.getString(R.string.default_web_client_id))
+                            .build()
+                        val request = GetCredentialRequest.Builder()
+                            .addCredentialOption(googleIdOption)
+                            .build()
+                        try {
+                            val result = CredentialManager.create(context).getCredential(context, request)
+                            val idToken = GoogleIdTokenCredential.createFrom(result.credential.data).idToken
+                            viewModel.onGoogleIdTokenReceived(idToken)
+                        } catch (e: GetCredentialException) {
+                            viewModel.onGoogleSignInFailed(e.message ?: "Google sign-in failed")
+                        }
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 12.dp),

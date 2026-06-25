@@ -56,6 +56,10 @@ class LoginViewModel @Inject constructor(
         }
     }
 
+    fun onGoogleSignInFailed(message: String) {
+        _uiState.update { it.copy(isLoading = false, errorMessage = message) }
+    }
+
     private fun applyResult(result: Resource<*>) {
         when (result) {
             is Resource.Success<*> -> _uiState.update { it.copy(isLoading = false, isAuthenticated = true) }
