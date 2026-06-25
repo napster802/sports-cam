@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.google.services)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.detekt)
 }
 
 // Release signing is optional scaffolding: if neither `keystore.properties` (gitignored, see
@@ -116,6 +117,18 @@ android {
             isReturnDefaultValues = true
         }
     }
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    parallel = true
+}
+
+// This codebase has never been run through a static analyzer before, so a first detekt pass is
+// expected to surface a backlog of style findings unrelated to correctness. Report rather than
+// fail CI on them until that backlog has been triaged - see docs/ROADMAP.md.
+tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
+    ignoreFailures = true
 }
 
 dependencies {
