@@ -12,7 +12,20 @@
           "package_name": "com.sportcasterpro.app.debug"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "996487955027-5eqh276n8qp2gvghj57asfi2t3oeje3s.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sportcasterpro.app.debug",
+            "certificate_hash": "be99c3bfdce60a37706bb5ea5e9cc62ad445d29c"
+          }
+        },
+        {
+          "client_id": "996487955027-58qjpaj2tn9m1fg66v6ebl38lshhpjha.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyC1QPKxM8mZaaHzyz74sFiAAqIPt8gmA58"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "996487955027-58qjpaj2tn9m1fg66v6ebl38lshhpjha.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
