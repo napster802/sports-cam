@@ -62,4 +62,6 @@ class ScoreboardEditorViewModel @Inject constructor(
             _uiState.update { it.copy(isSaving = false, readyToGoLive = true) }
         }
     }
+
+    fun onGoLiveHandled() = _uiState.update { it.copy(readyToGoLive = false) }
 }

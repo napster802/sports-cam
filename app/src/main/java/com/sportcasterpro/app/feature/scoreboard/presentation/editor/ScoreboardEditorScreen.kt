@@ -44,7 +44,10 @@ fun ScoreboardEditorScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState.readyToGoLive) {
-        if (uiState.readyToGoLive) onGoLive(matchId)
+        if (uiState.readyToGoLive) {
+            onGoLive(matchId)
+            viewModel.onGoLiveHandled()
+        }
     }
 
     Scaffold(topBar = { SportCasterTopBar(stringResource(R.string.scoreboard_editor_title), onBack) }) { padding ->

@@ -1,31 +1,45 @@
 package com.sportcasterpro.app.feature.livestream.presentation
 
 import android.Manifest
+import android.app.Activity
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -42,6 +56,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pedro.library.view.OpenGlView
 import com.sportcasterpro.app.R
+import com.sportcasterpro.app.core.domain.model.Sport
 import com.sportcasterpro.app.core.ui.components.FullScreenLoading
 import com.sportcasterpro.app.feature.scoreboard.domain.ScoringTeam
 import com.sportcasterpro.app.feature.scoreboard.presentation.ScoreboardOverlay
@@ -72,6 +87,17 @@ fun LiveStreamScreen(
         if (!permissionsGranted) permissionLauncher.launch(STREAMING_PERMISSIONS)
     }
 
+    // Live streaming benefits from landscape framing; unlock rotation here and restore the
+    // app-wide portrait lock (see AndroidManifest.xml) once this screen is left.
+    DisposableEffect(Unit) {
+        val activity = context as? Activity
+        val previousOrientation = activity?.requestedOrientation
+        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER
+        onDispose {
+            activity?.requestedOrientation = previousOrientation ?: ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
+    }
+
     Scaffold { padding ->
         if (uiState.isLoading || !permissionsGranted) {
             FullScreenLoading(modifier = Modifier.padding(padding))
@@ -84,38 +110,51 @@ fun LiveStreamScreen(
                 modifier = Modifier.fillMaxSize(),
             )
 
-            uiState.scoreboard?.let { scoreboard ->
-                ScoreboardOverlay(
-                    state = scoreboard,
+            Column(modifier = Modifier.fillMaxSize()) {
+                Row(
                     modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 16.dp)
-                        .fillMaxWidth(0.92f),
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.surface)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        StreamStatusBadge(status = uiState.streamStats.connectionStatus)
+                        IconButton(onClick = { isSettingsDialogOpen = true }) {
+                            Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.stream_settings_title), tint = MaterialTheme.colorScheme.surface)
+                        }
+                    }
+                }
+
+                uiState.scoreboard?.let { scoreboard ->
+                    ScoreboardOverlay(
+                        state = scoreboard,
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(top = 4.dp)
+                            .fillMaxWidth(0.92f),
+                    )
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                LiveStreamControls(
+                    viewModel = viewModel,
+                    sport = uiState.scoreboard?.sport,
+                    isTimerRunning = uiState.scoreboard?.isTimerRunning == true,
+                    isRecording = uiState.streamStats.isRecording,
+                    isStreaming = uiState.streamStats.connectionStatus == ConnectionStatus.STREAMING ||
+                        uiState.streamStats.connectionStatus == ConnectionStatus.CONNECTING,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .navigationBarsPadding()
+                        .padding(bottom = 16.dp),
                 )
             }
-
-            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.TopStart).padding(8.dp)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.surface)
-            }
-
-            Row(
-                modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                StreamStatusBadge(status = uiState.streamStats.connectionStatus)
-                IconButton(onClick = { isSettingsDialogOpen = true }) {
-                    Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.stream_settings_title), tint = MaterialTheme.colorScheme.surface)
-                }
-            }
-
-            LiveStreamControls(
-                viewModel = viewModel,
-                isRecording = uiState.streamStats.isRecording,
-                isStreaming = uiState.streamStats.connectionStatus == ConnectionStatus.STREAMING ||
-                    uiState.streamStats.connectionStatus == ConnectionStatus.CONNECTING,
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp),
-            )
         }
 
         if (isSettingsDialogOpen) {
@@ -131,12 +170,23 @@ fun LiveStreamScreen(
     }
 }
 
+private enum class StreamPlatform(val label: String, val defaultRtmpUrl: String?) {
+    FACEBOOK("Facebook", "rtmps://live-api-s.facebook.com:443/rtmp/"),
+    CUSTOM("Custom RTMP", null),
+}
+
+private fun platformFor(rtmpUrl: String): StreamPlatform =
+    StreamPlatform.entries.firstOrNull { it.defaultRtmpUrl == rtmpUrl } ?: StreamPlatform.CUSTOM
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun StreamSettingsDialog(
     initialSettings: StreamSettings,
     onDismiss: () -> Unit,
     onSave: (StreamSettings) -> Unit,
 ) {
+    var platform by remember { mutableStateOf(platformFor(initialSettings.rtmpUrl)) }
+    var platformMenuExpanded by remember { mutableStateOf(false) }
     var rtmpUrl by remember { mutableStateOf(initialSettings.rtmpUrl) }
     var streamKey by remember { mutableStateOf(initialSettings.streamKey) }
     var resolution by remember { mutableStateOf(initialSettings.videoWidth to initialSettings.videoHeight) }
@@ -148,13 +198,47 @@ private fun StreamSettingsDialog(
         title = { Text(stringResource(R.string.stream_settings_title)) },
         text = {
             Column {
-                OutlinedTextField(
-                    value = rtmpUrl,
-                    onValueChange = { rtmpUrl = it },
-                    label = { Text(stringResource(R.string.label_rtmp_url)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                ExposedDropdownMenuBox(
+                    expanded = platformMenuExpanded,
+                    onExpandedChange = { platformMenuExpanded = it },
+                ) {
+                    OutlinedTextField(
+                        value = platform.label,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text(stringResource(R.string.label_platform)) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = platformMenuExpanded) },
+                        modifier = Modifier
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                            .fillMaxWidth(),
+                    )
+                    ExposedDropdownMenu(
+                        expanded = platformMenuExpanded,
+                        onDismissRequest = { platformMenuExpanded = false },
+                        modifier = Modifier.exposedDropdownSize(),
+                    ) {
+                        StreamPlatform.entries.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option.label) },
+                                onClick = {
+                                    platform = option
+                                    option.defaultRtmpUrl?.let { rtmpUrl = it }
+                                    platformMenuExpanded = false
+                                },
+                            )
+                        }
+                    }
+                }
+
+                if (platform == StreamPlatform.CUSTOM) {
+                    OutlinedTextField(
+                        value = rtmpUrl,
+                        onValueChange = { rtmpUrl = it },
+                        label = { Text(stringResource(R.string.label_rtmp_url)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    )
+                }
                 OutlinedTextField(
                     value = streamKey,
                     onValueChange = { streamKey = it },
@@ -258,20 +342,36 @@ private fun StreamStatusBadge(status: ConnectionStatus, modifier: Modifier = Mod
 @Composable
 private fun LiveStreamControls(
     viewModel: LiveStreamViewModel,
+    sport: Sport?,
+    isTimerRunning: Boolean,
     isRecording: Boolean,
     isStreaming: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ScoreButtons(team = ScoringTeam.HOME, viewModel = viewModel)
-            ScoreButtons(team = ScoringTeam.AWAY, viewModel = viewModel)
+            ScoreButtons(team = ScoringTeam.HOME, sport = sport, viewModel = viewModel)
+            ScoreButtons(team = ScoringTeam.AWAY, sport = sport, viewModel = viewModel)
         }
-        Row(modifier = Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(
+            modifier = Modifier.padding(top = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             OutlinedButton(onClick = viewModel::nextPeriod) { Text(stringResource(R.string.action_next_period)) }
             OutlinedButton(onClick = viewModel::swapTeams) { Text(stringResource(R.string.action_swap_teams)) }
             OutlinedButton(onClick = viewModel::toggleRecording) {
                 Text(if (isRecording) stringResource(R.string.action_pause) else stringResource(R.string.action_record))
+            }
+            IconButton(onClick = { if (isTimerRunning) viewModel.pauseTimer() else viewModel.startTimer() }) {
+                Icon(
+                    imageVector = if (isTimerRunning) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    contentDescription = if (isTimerRunning) {
+                        stringResource(R.string.action_pause_timer)
+                    } else {
+                        stringResource(R.string.action_play_timer)
+                    },
+                )
             }
         }
         Button(
@@ -285,9 +385,22 @@ private fun LiveStreamControls(
 }
 
 @Composable
-private fun ScoreButtons(team: ScoringTeam, viewModel: LiveStreamViewModel) {
+private fun ScoreButtons(team: ScoringTeam, sport: Sport?, viewModel: LiveStreamViewModel) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Button(onClick = { viewModel.addPoint(team) }) { Text(stringResource(R.string.action_add_point)) }
+        if (sport == Sport.BASKETBALL) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                listOf(1, 2, 3).forEach { points ->
+                    Button(
+                        onClick = { viewModel.addPoint(team, points) },
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                    ) {
+                        Text("+$points")
+                    }
+                }
+            }
+        } else {
+            Button(onClick = { viewModel.addPoint(team) }) { Text(stringResource(R.string.action_add_point)) }
+        }
         OutlinedButton(onClick = { viewModel.removePoint(team) }, modifier = Modifier.padding(top = 4.dp)) {
             Text(stringResource(R.string.action_remove_point))
         }

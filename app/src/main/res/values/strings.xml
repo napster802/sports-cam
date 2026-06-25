@@ -31,7 +31,10 @@
     <string name="action_resume">Resume</string>
     <string name="label_rtmp_url">RTMP URL</string>
     <string name="label_stream_key">Stream Key</string>
+    <string name="label_platform">Platform</string>
     <string name="stream_settings_title">Stream Settings</string>
+    <string name="action_play_timer">Play Timer</string>
+    <string name="action_pause_timer">Pause Timer</string>
     <string name="action_save">Save</string>
     <string name="action_cancel">Cancel</string>
     <string name="label_resolution">Resolution</string>
