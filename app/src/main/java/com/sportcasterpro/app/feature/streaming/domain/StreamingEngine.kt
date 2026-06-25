@@ -1,12 +1,14 @@
 package com.sportcasterpro.app.feature.streaming.domain
 
 import com.pedro.common.ConnectChecker
+import com.pedro.encoder.input.video.CameraOpenException
 import com.pedro.library.rtmp.RtmpCamera2
 import com.pedro.library.view.OpenGlView
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import java.io.IOException
 import javax.inject.Inject
 
 private const val DEFAULT_IFRAME_INTERVAL_SECONDS = 2
@@ -59,8 +61,12 @@ class StreamingEngine @Inject constructor() : ConnectChecker {
     fun startRecording(outputFilePath: String) {
         val rtmpCamera = camera ?: return
         if (rtmpCamera.isRecording) return
-        rtmpCamera.startRecord(outputFilePath)
-        _stats.update { it.copy(isRecording = true) }
+        try {
+            rtmpCamera.startRecord(outputFilePath)
+            _stats.update { it.copy(isRecording = true) }
+        } catch (e: IOException) {
+            _stats.update { it.copy(errorMessage = "Could not start recording: ${e.message}") }
+        }
     }
 
     fun stopRecording() {
@@ -77,7 +83,11 @@ class StreamingEngine @Inject constructor() : ConnectChecker {
     }
 
     fun switchCamera() {
-        camera?.switchCamera()
+        try {
+            camera?.switchCamera()
+        } catch (e: CameraOpenException) {
+            _stats.update { it.copy(errorMessage = "Could not switch camera: ${e.message}") }
+        }
     }
 
     fun setZoom(level: Float) {

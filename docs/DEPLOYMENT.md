@@ -46,7 +46,7 @@ No release signing config has been set up yet. Before producing a release build:
 
 ## Release checklist
 
-- [ ] Resolve any RootEncoder API mismatches in `StreamingEngine.kt` (first Android Studio build).
+- [ ] Confirm `StreamingEngine.kt` compiles against the real RootEncoder `2.5.3` AAR (first Android Studio build) — its API usage has been read-verified against the library's source (see `docs/ARCHITECTURE.md`) but never compiled.
 - [ ] Confirm the scoreboard overlay actually appears in the outgoing RTMP stream, not just the local preview (see `docs/ARCHITECTURE.md` — known gap).
 - [ ] Add a release signing config and verify a signed, minified build installs and runs.
 - [ ] Run the full test suite: `./gradlew testFreeDebugUnitTest connectedFreeDebugAndroidTest`.

@@ -4,7 +4,7 @@ Phase 1 (this repository, as of now) delivers a compiling core: auth, match/team
 
 ## Immediate priorities (do these first)
 
-1. **Verify the RootEncoder integration compiles and runs.** `feature/streaming/domain/StreamingEngine.kt` was written without access to a working Android SDK/Gradle build — see `docs/ARCHITECTURE.md`. This blocks everything else streaming-related.
+1. **Verify the RootEncoder integration compiles and runs.** `feature/streaming/domain/StreamingEngine.kt` has been read-verified line-by-line against RootEncoder 2.5.3's real source (see `docs/ARCHITECTURE.md`) — no API mismatches found, and one robustness fix applied (checked-exception handling on `startRecord`/`switchCamera`). What remains is a real compile-and-run pass in Android Studio, which this sandbox cannot do (no Android SDK, no network access to Google's Maven repo).
 2. **Burn the scoreboard into the actual outgoing stream/recording, not just the local preview.** Today `ScoreboardOverlay` is a Compose layer on top of RootEncoder's `OpenGlView`; RootEncoder's encoder never sees it. Investigate RootEncoder's overlay/filter APIs (it supports adding image/text/GL overlays directly into the encode pipeline) or compositing a rendered scoreboard bitmap into the same surface.
 3. **Add a release signing config** and produce a real signed build (see `docs/DEPLOYMENT.md`).
 4. **Stand up CI** (GitHub Actions or similar) running `./gradlew testFreeDebugUnitTest detekt lint` on every push, since this codebase has not yet been verified by any compiler.
