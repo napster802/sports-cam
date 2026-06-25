@@ -2,6 +2,7 @@ package com.sportcasterpro.app.feature.scoreboard.domain
 
 import com.sportcasterpro.app.core.domain.model.Sport
 import com.sportcasterpro.app.core.domain.model.Team
+import com.sportcasterpro.app.feature.scoreboard.domain.rules.GenericPointRules
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
