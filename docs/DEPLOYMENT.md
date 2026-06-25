@@ -47,7 +47,7 @@ No release signing config has been set up yet. Before producing a release build:
 ## Release checklist
 
 - [ ] Confirm `StreamingEngine.kt` compiles against the real RootEncoder `2.5.3` AAR (first Android Studio build) — its API usage has been read-verified against the library's source (see `docs/ARCHITECTURE.md`) but never compiled.
-- [ ] Confirm the scoreboard overlay actually appears in the outgoing RTMP stream, not just the local preview (see `docs/ARCHITECTURE.md` — known gap).
+- [ ] Confirm the scoreboard overlay (`ScoreboardOverlayRenderer`) actually appears, correctly positioned, in the outgoing RTMP stream and recorded file — implemented and read-verified against RootEncoder's source but never run on a device (see `docs/ARCHITECTURE.md`).
 - [ ] Add a release signing config and verify a signed, minified build installs and runs.
 - [ ] Run the full test suite: `./gradlew testFreeDebugUnitTest connectedFreeDebugAndroidTest`.
 - [ ] Manually test the full flow on a real device with a real RTMP destination (an emulator's virtual camera and network characteristics are not representative of live streaming): sign in → create match → go live → score points → end stream → verify the recording file under app-specific `Movies/`.

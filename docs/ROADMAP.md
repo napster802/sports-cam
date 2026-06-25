@@ -5,7 +5,7 @@ Phase 1 (this repository, as of now) delivers a compiling core: auth, match/team
 ## Immediate priorities (do these first)
 
 1. **Verify the RootEncoder integration compiles and runs.** `feature/streaming/domain/StreamingEngine.kt` has been read-verified line-by-line against RootEncoder 2.5.3's real source (see `docs/ARCHITECTURE.md`) — no API mismatches found, and one robustness fix applied (checked-exception handling on `startRecord`/`switchCamera`). What remains is a real compile-and-run pass in Android Studio, which this sandbox cannot do (no Android SDK, no network access to Google's Maven repo).
-2. **Burn the scoreboard into the actual outgoing stream/recording, not just the local preview.** Today `ScoreboardOverlay` is a Compose layer on top of RootEncoder's `OpenGlView`; RootEncoder's encoder never sees it. Investigate RootEncoder's overlay/filter APIs (it supports adding image/text/GL overlays directly into the encode pipeline) or compositing a rendered scoreboard bitmap into the same surface.
+2. **Burn the scoreboard into the actual outgoing stream/recording, not just the local preview.** Done: `feature/streaming/domain/ScoreboardOverlayRenderer.kt` draws the scoreboard onto a RootEncoder `SurfaceFilterRender` added to the camera's `GlInterface`, composited into the encoded frame via alpha blending (read-verified against RootEncoder's real shader source, see `docs/ARCHITECTURE.md`). Still needs a real on-device pass to confirm the visual layout/proportions look right in an actual recorded clip — the Canvas-drawn design is a from-scratch reimplementation of the Compose `ScoreboardOverlay`, not a literal copy.
 3. **Add a release signing config** and produce a real signed build (see `docs/DEPLOYMENT.md`).
 4. **Stand up CI** (GitHub Actions or similar) running `./gradlew testFreeDebugUnitTest detekt lint` on every push, since this codebase has not yet been verified by any compiler.
 
@@ -27,8 +27,7 @@ Phase 1 (this repository, as of now) delivers a compiling core: auth, match/team
 
 ## Suggested sequencing
 
-1. Get a real build green (Immediate priorities #1, #3, #4).
-2. Fix the overlay-not-in-stream gap (#2) — this is core to the product's value proposition.
-3. Round out sport rules and add the diagnostics/camera-switch UI (low risk, high polish).
-4. Pick one cloud-sync story (Firestore vs. Realtime DB) deliberately rather than depending on both ambiguously.
-5. Layer in monetization, social, and stats features once the broadcast path itself is trusted in production.
+1. Get a real build green (Immediate priorities #1, #3, #4) — this also gives the first real-device confirmation that the overlay burn-in (#2) actually looks right, since none of this has been compiled yet.
+2. Round out sport rules and add the diagnostics/camera-switch UI (low risk, high polish).
+3. Pick one cloud-sync story (Firestore vs. Realtime DB) deliberately rather than depending on both ambiguously.
+4. Layer in monetization, social, and stats features once the broadcast path itself is trusted in production.

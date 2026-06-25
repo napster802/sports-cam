@@ -70,6 +70,9 @@ class LiveStreamViewModel @Inject constructor(
             scoreboardController.start(match.sport, match.homeTeam, match.awayTeam)
             hasScoreboardStarted.value = true
         }
+        viewModelScope.launch {
+            uiState.collect { streamingEngine.updateScoreboardOverlay(it.scoreboard) }
+        }
     }
 
     fun onPreviewReady(view: OpenGlView) = streamingEngine.attachPreview(view)

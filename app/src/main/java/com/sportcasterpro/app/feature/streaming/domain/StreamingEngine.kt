@@ -4,6 +4,7 @@ import com.pedro.common.ConnectChecker
 import com.pedro.encoder.input.video.CameraOpenException
 import com.pedro.library.rtmp.RtmpCamera2
 import com.pedro.library.view.OpenGlView
+import com.sportcasterpro.app.feature.scoreboard.domain.ScoreboardState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,7 +21,9 @@ private const val AUDIO_SAMPLE_RATE_HZ = 44_100
  * together, so this engine needs a live [OpenGlView] before [startStream] or [startRecording] can
  * be called — wire it up via [attachPreview] once the Compose `AndroidView` is created.
  */
-class StreamingEngine @Inject constructor() : ConnectChecker {
+class StreamingEngine @Inject constructor(
+    private val scoreboardOverlayRenderer: ScoreboardOverlayRenderer,
+) : ConnectChecker {
 
     private var camera: RtmpCamera2? = null
 
@@ -28,7 +31,17 @@ class StreamingEngine @Inject constructor() : ConnectChecker {
     val stats: StateFlow<StreamStats> = _stats.asStateFlow()
 
     fun attachPreview(view: OpenGlView) {
-        camera = RtmpCamera2(view, this)
+        val rtmpCamera = RtmpCamera2(view, this)
+        camera = rtmpCamera
+        scoreboardOverlayRenderer.attach(rtmpCamera.glInterface)
+    }
+
+    /**
+     * Pushes the current scoreboard into the actual RTMP/recording GL pipeline (not just the
+     * Compose preview) — see [ScoreboardOverlayRenderer].
+     */
+    fun updateScoreboardOverlay(state: ScoreboardState?) {
+        scoreboardOverlayRenderer.render(state)
     }
 
     fun startStream(settings: StreamSettings) {
@@ -95,6 +108,8 @@ class StreamingEngine @Inject constructor() : ConnectChecker {
     }
 
     fun release() {
+        scoreboardOverlayRenderer.detach()
+        scoreboardOverlayRenderer.release()
         camera?.apply {
             if (isStreaming) stopStream()
             if (isRecording) stopRecord()
