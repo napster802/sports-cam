@@ -10,7 +10,9 @@ captures/
 *.apk
 *.aab
 *.keystore
+*.jks
 !debug.keystore
+keystore.properties
 .kotlin/
 
 # Keep the gradle wrapper jar/scripts and the placeholder google-services.json tracked.

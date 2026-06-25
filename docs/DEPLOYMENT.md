@@ -38,17 +38,19 @@ Crossed with the two build types (`debug`, `release`), Gradle produces `freeDebu
 
 ## Signing
 
-No release signing config has been set up yet. Before producing a release build:
+`app/build.gradle.kts` has a release signing scaffold wired up already — it's optional, so a fresh clone with no keystore still builds (just unsigned). To produce a signed release build:
 
 1. Generate an upload keystore: `keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias sportcaster-upload`.
-2. Add a `signingConfigs { release { ... } }` block to `app/build.gradle.kts` and reference it from `buildTypes.release`, pulling the keystore path/passwords from `gradle.properties` (gitignored) or environment variables — **do not commit keystore credentials**.
-3. Keep `isMinifyEnabled = true` / `isShrinkResources = true` (already set for `release`) and audit `app/proguard-rules.pro` once you've confirmed the app actually runs, since R8 can be unforgiving with reflection-based libraries (Firebase, Hilt, Room — Hilt and Room both ship their own consumer ProGuard rules, but RootEncoder's rules have not been verified here).
+2. Copy `keystore.properties.example` (repo root) to `keystore.properties` and fill in `storeFile` (absolute path to the `.jks` from step 1), `storePassword`, `keyAlias`, `keyPassword`. `keystore.properties` is gitignored — **never commit it**.
+3. Alternatively (e.g. in CI, where a properties file is awkward), set the `SPORTCASTER_KEYSTORE_PATH` / `SPORTCASTER_KEYSTORE_PASSWORD` / `SPORTCASTER_KEY_ALIAS` / `SPORTCASTER_KEY_PASSWORD` environment variables — `app/build.gradle.kts` falls back to these if `keystore.properties` isn't present.
+4. Once all four values resolve (from either source), `app/build.gradle.kts` registers a `release` signing config and wires it into `buildTypes.release` automatically — no further Gradle changes needed. Run `./gradlew assembleProRelease` and confirm the output APK is signed (`apksigner verify` or check for a `Signed by` entry in Android Studio's APK Analyzer).
+5. Keep `isMinifyEnabled = true` / `isShrinkResources = true` (already set for `release`) and audit `app/proguard-rules.pro` once you've confirmed the app actually runs, since R8 can be unforgiving with reflection-based libraries (Firebase, Hilt, Room — Hilt and Room both ship their own consumer ProGuard rules, but RootEncoder's rules have not been verified here).
 
 ## Release checklist
 
 - [ ] Confirm `StreamingEngine.kt` compiles against the real RootEncoder `2.5.3` AAR (first Android Studio build) — its API usage has been read-verified against the library's source (see `docs/ARCHITECTURE.md`) but never compiled.
 - [ ] Confirm the scoreboard overlay (`ScoreboardOverlayRenderer`) actually appears, correctly positioned, in the outgoing RTMP stream and recorded file — implemented and read-verified against RootEncoder's source but never run on a device (see `docs/ARCHITECTURE.md`).
-- [ ] Add a release signing config and verify a signed, minified build installs and runs.
+- [ ] Done: a release signing config (`app/build.gradle.kts`, `keystore.properties.example`) is wired up — still needs a real keystore and a verification pass that the resulting signed, minified build installs and runs.
 - [ ] Run the full test suite: `./gradlew testFreeDebugUnitTest connectedFreeDebugAndroidTest`.
 - [ ] Manually test the full flow on a real device with a real RTMP destination (an emulator's virtual camera and network characteristics are not representative of live streaming): sign in → create match → go live → score points → end stream → verify the recording file under app-specific `Movies/`.
 - [ ] Verify all permissions in `AndroidManifest.xml` (`CAMERA`, `RECORD_AUDIO`, `POST_NOTIFICATIONS`, foreground service types `camera|microphone`) are requested/granted correctly on a target-SDK-35 device.

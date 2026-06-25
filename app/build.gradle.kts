@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -6,6 +9,26 @@ plugins {
     alias(libs.plugins.google.services)
     alias(libs.plugins.compose.compiler)
 }
+
+// Release signing is optional scaffolding: if neither `keystore.properties` (gitignored, see
+// keystore.properties.example) nor the SPORTCASTER_* env vars are present, release builds are
+// simply left unsigned rather than failing the build - see docs/DEPLOYMENT.md.
+val keystoreProperties = Properties().apply {
+    val keystorePropertiesFile = rootProject.file("keystore.properties")
+    if (keystorePropertiesFile.exists()) {
+        load(FileInputStream(keystorePropertiesFile))
+    }
+}
+
+fun releaseSigningProperty(propertyKey: String, envVar: String): String? =
+    keystoreProperties.getProperty(propertyKey) ?: System.getenv(envVar)
+
+val releaseStoreFilePath = releaseSigningProperty("storeFile", "SPORTCASTER_KEYSTORE_PATH")
+val releaseStorePassword = releaseSigningProperty("storePassword", "SPORTCASTER_KEYSTORE_PASSWORD")
+val releaseKeyAlias = releaseSigningProperty("keyAlias", "SPORTCASTER_KEY_ALIAS")
+val releaseKeyPassword = releaseSigningProperty("keyPassword", "SPORTCASTER_KEY_PASSWORD")
+val hasReleaseSigningConfig = releaseStoreFilePath != null && releaseStorePassword != null &&
+    releaseKeyAlias != null && releaseKeyPassword != null
 
 android {
     namespace = "com.sportcasterpro.app"
@@ -22,6 +45,17 @@ android {
         vectorDrawables.useSupportLibrary = true
     }
 
+    if (hasReleaseSigningConfig) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(releaseStoreFilePath!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         debug {
             isMinifyEnabled = false
@@ -32,6 +66,9 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (hasReleaseSigningConfig) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
